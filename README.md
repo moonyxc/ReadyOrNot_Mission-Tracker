@@ -1,36 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ready or Not Mission Tracker
 
-## Getting Started
+A manual mission objective tracker for Ready or Not. Progress is saved in the
+browser, separately for each mission.
 
-First, run the development server:
+## Getting started
+
+Install dependencies and start the development server:
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Available scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` — start the local development server
+- `npm run build` — create a production build
+- `npm start` — serve the production build
+- `npm run lint` — run ESLint
+- `npm test` — run the unit tests
 
-## Learn More
+## Updating mission data
 
-To learn more about Next.js, take a look at the following resources:
+Edit `src/app/missions.ts` to add or update missions. Each mission needs a
+unique ID and number. Objective IDs must be unique within a mission, targets
+must be positive integers, and `check` objectives must have a target of `1`.
+The tests validate these data rules.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Progress is stored in the browser's local storage on the current device and
+browser; it is not synchronized between devices.

@@ -22,7 +22,7 @@ const mono = Share_Tech_Mono({
 
 export const metadata: Metadata = {
   title: "Ready or Not Mission Tracker",
-  description: "Manueller Mission-Tracker für Ready or Not",
+  description: "A manual mission tracker for Ready or Not.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -22,7 +22,7 @@ export default async function MissionPage({
         href="/"
         className="mb-6 font-mono text-sm text-police hover:text-amber"
       >
-        ◀ ZURÜCK ZUR EINSATZWAHL
+        ◀ BACK TO MISSION SELECT
       </Link>
       <Tracker mission={mission} />
     </main>

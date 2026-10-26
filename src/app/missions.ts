@@ -4,7 +4,7 @@ export type Objective = {
   id: string;
   title: string;
   description: string;
-  // "count" = Z?hler (z.B. 3/15), "check" = einmalig erledigt
+  // "count" tracks a quantity (e.g. 3/15); "check" is a one-time objective.
   kind: "count" | "check";
   target: number;
   type: ObjectiveType;

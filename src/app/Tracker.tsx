@@ -2,30 +2,38 @@
 
 import { useEffect, useState } from "react";
 import type { Mission, Objective } from "./missions";
-
-type Counts = Record<string, number>;
-
-const zero = (m: Mission): Counts =>
-  Object.fromEntries(m.objectives.map((o) => [o.id, 0]));
+import {
+  emptyCounts,
+  parseStoredCounts,
+  type Counts,
+} from "./tracker-storage";
 
 function Pips({
+  objectiveTitle,
   value,
   max,
   onSet,
 }: {
+  objectiveTitle: string;
   value: number;
   max: number;
   onSet: (n: number) => void;
 }) {
   return (
-    <div className="mt-3 flex flex-wrap gap-1">
+    <div
+      role="group"
+      aria-label={`${objectiveTitle} progress`}
+      className="mt-3 flex flex-wrap gap-1"
+    >
       {Array.from({ length: max }, (_, i) => {
         const on = i < value;
         return (
           <button
             key={i}
+            type="button"
             onClick={() => onSet(on && i === value - 1 ? i : i + 1)}
-            aria-label={`Auf ${i + 1} setzen`}
+            aria-label={`Set ${objectiveTitle} to ${i + 1}`}
+            aria-pressed={on}
             className={`h-5 w-3 -skew-x-12 border transition ${
               on
                 ? "border-amber bg-amber shadow-[0_0_8px_rgba(245,165,36,0.6)]"
@@ -54,6 +62,7 @@ function Row({
     <li className={`panel relative p-4 sm:p-5 ${complete ? "panel-done" : ""}`}>
       <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap sm:gap-4">
         <div
+          aria-hidden="true"
           className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center border-2 font-mono text-lg ${
             complete
               ? "border-ok bg-ok/20 text-ok"
@@ -62,6 +71,7 @@ function Row({
         >
           ✓
         </div>
+        <span className="sr-only">{complete ? "Completed" : "Incomplete"}</span>
 
         <div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-0">
           <p className="font-mono text-[11px] tracking-[0.25em] text-zinc-500">
@@ -69,16 +79,21 @@ function Row({
               ? `OBJECTIVE ${String(index + 1).padStart(2, "0")}`
               : "STAT"}
           </p>
-          <h2
+          <h3
             className={`font-display text-xl uppercase tracking-wide sm:text-2xl ${
               complete ? "text-zinc-400 line-through decoration-ok/60" : ""
             }`}
           >
             {o.title}
-          </h2>
+          </h3>
           <p className="text-lg leading-tight text-zinc-400">{o.description}</p>
           {o.kind === "count" && (
-            <Pips value={value} max={o.target} onSet={onSet} />
+            <Pips
+              objectiveTitle={o.title}
+              value={value}
+              max={o.target}
+              onSet={onSet}
+            />
           )}
         </div>
 
@@ -94,16 +109,18 @@ function Row({
             </p>
             <div className="flex gap-1.5">
               <button
+                type="button"
                 onClick={() => onSet(Math.max(0, value - 1))}
                 className="btn h-11 w-11 text-2xl"
-                aria-label={`${o.title} minus`}
+                aria-label={`Decrease ${o.title}`}
               >
                 −
               </button>
               <button
+                type="button"
                 onClick={() => onSet(Math.min(o.target, value + 1))}
                 className="btn btn-primary h-11 w-11 text-2xl"
-                aria-label={`${o.title} plus`}
+                aria-label={`Increase ${o.title}`}
               >
                 +
               </button>
@@ -111,10 +128,16 @@ function Row({
           </div>
         ) : (
           <button
+            type="button"
             onClick={() => onSet(complete ? 0 : 1)}
             className={`btn h-11 w-full shrink-0 px-4 text-sm tracking-widest sm:w-auto ${
               complete ? "" : "btn-primary"
             }`}
+            aria-label={
+              complete
+                ? `Undo completion of ${o.title}`
+                : `Mark ${o.title} complete`
+            }
           >
             {complete ? "UNDO" : "REPORT"}
           </button>
@@ -133,9 +156,9 @@ function Section({
 }) {
   return (
     <section>
-      <h3 className="font-display mt-8 mb-3 border-b border-line pb-2 text-sm uppercase tracking-[0.35em] text-zinc-400">
+      <h2 className="font-display mt-8 mb-3 border-b border-line pb-2 text-sm uppercase tracking-[0.35em] text-zinc-400">
         {title}
-      </h3>
+      </h2>
       {children}
     </section>
   );
@@ -143,28 +166,73 @@ function Section({
 
 export default function Tracker({ mission }: { mission: Mission }) {
   const key = `ron-tracker:v4:${mission.id}`;
-  const [counts, setCounts] = useState<Counts>(() => zero(mission));
-  const [loaded, setLoaded] = useState(false);
+  const [counts, setCounts] = useState<Counts>(() => emptyCounts(mission));
+  const [storageStatus, setStorageStatus] = useState<{
+    key: string;
+    available: boolean;
+    message: string | null;
+  } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
 
   useEffect(() => {
+    let nextCounts = emptyCounts(mission);
+    let nextStatus = {
+      key,
+      available: true,
+      message: null as string | null,
+    };
+    let raw: string | null = null;
+
     try {
-      const raw = localStorage.getItem(key);
-      // localStorage ist erst nach dem Mount verfügbar (SSR-Hydration)
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (raw) setCounts({ ...zero(mission), ...JSON.parse(raw) });
-    } catch {}
-    setLoaded(true);
+      raw = localStorage.getItem(key);
+    } catch {
+      nextStatus = {
+        key,
+        available: false,
+        message:
+          "Browser storage is unavailable. Progress will not be saved.",
+      };
+    }
+
+    if (nextStatus.available) {
+      const saved = parseStoredCounts(raw, mission);
+      nextCounts = saved.counts;
+      if (saved.invalid) {
+        nextStatus.message =
+          "Some saved progress was invalid and has been reset.";
+      }
+    }
+
+    // Browser storage is only available after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCounts(nextCounts);
+    setStorageStatus(nextStatus);
   }, [key, mission]);
 
   useEffect(() => {
-    if (loaded) localStorage.setItem(key, JSON.stringify(counts));
-  }, [counts, key, loaded]);
+    if (storageStatus?.key !== key || !storageStatus.available) return;
+
+    try {
+      localStorage.setItem(key, JSON.stringify(counts));
+    } catch {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStorageStatus((current) =>
+        current?.key === key
+          ? {
+              ...current,
+              available: false,
+              message: "Progress could not be saved in this browser.",
+            }
+          : current,
+      );
+    }
+  }, [counts, key, storageStatus]);
 
   const set = (id: string, n: number) =>
     setCounts((c) => ({ ...c, [id]: n }));
 
-  const val = (o: Objective) => Math.min(counts[o.id] ?? 0, o.target);
+  const val = (o: Objective) =>
+    Math.max(0, Math.min(counts[o.id] ?? 0, o.target));
   const done = (o: Objective) => val(o) >= o.target;
 
   const objs = mission.objectives;
@@ -191,7 +259,7 @@ export default function Tracker({ mission }: { mission: Mission }) {
             </h1>
           </div>
           {allDone && (
-            <div className="stamp font-display text-xl tracking-[0.2em]">
+            <div className="stamp stamp-on font-display text-xl tracking-[0.2em]">
               MISSION COMPLETE
             </div>
           )}
@@ -210,8 +278,17 @@ export default function Tracker({ mission }: { mission: Mission }) {
               {percent}%
             </p>
           </div>
-          <div className="mt-3 h-5 border border-line bg-black/70 p-0.5">
+          <div
+            role="progressbar"
+            aria-label="Mission score"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={percent}
+            aria-valuetext={`${percent}% complete`}
+            className="mt-3 h-5 border border-line bg-black/70 p-0.5"
+          >
             <div
+              aria-hidden="true"
               className={`stripes h-full transition-all duration-500 ${
                 allDone ? "bg-ok" : "bg-amber"
               }`}
@@ -222,6 +299,14 @@ export default function Tracker({ mission }: { mission: Mission }) {
             OBJECTIVES {completed}/{objs.length} COMPLETE
           </p>
         </div>
+        {storageStatus?.key === key && storageStatus.message && (
+          <p
+            role="status"
+            className="mt-4 border border-amber/40 bg-black/50 p-3 font-mono text-sm text-amber"
+          >
+            {storageStatus.message}
+          </p>
+        )}
       </header>
 
       <Section title="Main Objectives">
@@ -243,33 +328,35 @@ export default function Tracker({ mission }: { mission: Mission }) {
       <div className="mt-8 flex flex-wrap items-center gap-3 font-mono text-sm">
         {confirmReset ? (
           <>
-            <span className="text-danger">ALLES ZURÜCKSETZEN?</span>
+            <span className="text-danger">RESET MISSION?</span>
             <button
+              type="button"
               onClick={() => {
-                setCounts(zero(mission));
+                setCounts(emptyCounts(mission));
                 setConfirmReset(false);
               }}
               className="btn btn-danger px-4 py-2"
             >
-              JA
+              YES
             </button>
             <button
+              type="button"
               onClick={() => setConfirmReset(false)}
               className="btn px-4 py-2"
             >
-              ABBRECHEN
+              CANCEL
             </button>
           </>
         ) : (
           <button
+            type="button"
             onClick={() => setConfirmReset(true)}
             className="btn px-4 py-2 text-zinc-500"
           >
-            ↺ MISSION ZURÜCKSETZEN
+            ↺ RESET MISSION
           </button>
         )}
       </div>
     </div>
   );
 }
-
