@@ -1,0 +1,275 @@
+﻿"use client";
+
+import { useEffect, useState } from "react";
+import type { Mission, Objective } from "./missions";
+
+type Counts = Record<string, number>;
+
+const zero = (m: Mission): Counts =>
+  Object.fromEntries(m.objectives.map((o) => [o.id, 0]));
+
+function Pips({
+  value,
+  max,
+  onSet,
+}: {
+  value: number;
+  max: number;
+  onSet: (n: number) => void;
+}) {
+  return (
+    <div className="mt-3 flex flex-wrap gap-1">
+      {Array.from({ length: max }, (_, i) => {
+        const on = i < value;
+        return (
+          <button
+            key={i}
+            onClick={() => onSet(on && i === value - 1 ? i : i + 1)}
+            aria-label={`Auf ${i + 1} setzen`}
+            className={`h-5 w-3 -skew-x-12 border transition ${
+              on
+                ? "border-amber bg-amber shadow-[0_0_8px_rgba(245,165,36,0.6)]"
+                : "border-zinc-700 bg-black/60 hover:border-amber/60"
+            }`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function Row({
+  o,
+  index,
+  value,
+  onSet,
+}: {
+  o: Objective;
+  index: number;
+  value: number;
+  onSet: (n: number) => void;
+}) {
+  const complete = value >= o.target;
+  return (
+    <li className={`panel relative p-4 sm:p-5 ${complete ? "panel-done" : ""}`}>
+      <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap sm:gap-4">
+        <div
+          className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center border-2 font-mono text-lg ${
+            complete
+              ? "border-ok bg-ok/20 text-ok"
+              : "border-zinc-600 text-transparent"
+          }`}
+        >
+          ✓
+        </div>
+
+        <div className="min-w-0 flex-1 basis-[calc(100%-3rem)] sm:basis-0">
+          <p className="font-mono text-[11px] tracking-[0.25em] text-zinc-500">
+            {o.type === "main" || o.type === "soft"
+              ? `OBJECTIVE ${String(index + 1).padStart(2, "0")}`
+              : "STAT"}
+          </p>
+          <h2
+            className={`font-display text-xl uppercase tracking-wide sm:text-2xl ${
+              complete ? "text-zinc-400 line-through decoration-ok/60" : ""
+            }`}
+          >
+            {o.title}
+          </h2>
+          <p className="text-lg leading-tight text-zinc-400">{o.description}</p>
+          {o.kind === "count" && (
+            <Pips value={value} max={o.target} onSet={onSet} />
+          )}
+        </div>
+
+        {o.kind === "count" ? (
+          <div className="flex w-full shrink-0 items-center justify-between gap-2 sm:w-auto sm:flex-col sm:items-end">
+            <p
+              className={`font-mono text-4xl leading-none ${
+                complete ? "text-ok" : "text-amber"
+              }`}
+            >
+              {value}
+              <span className="text-xl text-zinc-600">/{o.target}</span>
+            </p>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => onSet(Math.max(0, value - 1))}
+                className="btn h-11 w-11 text-2xl"
+                aria-label={`${o.title} minus`}
+              >
+                −
+              </button>
+              <button
+                onClick={() => onSet(Math.min(o.target, value + 1))}
+                className="btn btn-primary h-11 w-11 text-2xl"
+                aria-label={`${o.title} plus`}
+              >
+                +
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => onSet(complete ? 0 : 1)}
+            className={`btn h-11 w-full shrink-0 px-4 text-sm tracking-widest sm:w-auto ${
+              complete ? "" : "btn-primary"
+            }`}
+          >
+            {complete ? "UNDO" : "REPORT"}
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <h3 className="font-display mt-8 mb-3 border-b border-line pb-2 text-sm uppercase tracking-[0.35em] text-zinc-400">
+        {title}
+      </h3>
+      {children}
+    </section>
+  );
+}
+
+export default function Tracker({ mission }: { mission: Mission }) {
+  const key = `ron-tracker:v4:${mission.id}`;
+  const [counts, setCounts] = useState<Counts>(() => zero(mission));
+  const [loaded, setLoaded] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      // localStorage ist erst nach dem Mount verfügbar (SSR-Hydration)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (raw) setCounts({ ...zero(mission), ...JSON.parse(raw) });
+    } catch {}
+    setLoaded(true);
+  }, [key, mission]);
+
+  useEffect(() => {
+    if (loaded) localStorage.setItem(key, JSON.stringify(counts));
+  }, [counts, key, loaded]);
+
+  const set = (id: string, n: number) =>
+    setCounts((c) => ({ ...c, [id]: n }));
+
+  const val = (o: Objective) => Math.min(counts[o.id] ?? 0, o.target);
+  const done = (o: Objective) => val(o) >= o.target;
+
+  const objs = mission.objectives;
+  const mains = objs.filter((o) => o.type === "main");
+  const softs = objs.filter((o) => o.type === "soft");
+
+  const totalTarget = objs.reduce((s, o) => s + o.target, 0);
+  const totalDone = objs.reduce((s, o) => s + val(o), 0);
+  const percent = totalTarget ? Math.round((totalDone / totalTarget) * 100) : 0;
+  const completed = objs.filter(done).length;
+  const allDone = completed === objs.length;
+
+  return (
+    <div className="w-full">
+      <header className="panel relative overflow-hidden p-4 sm:p-8">
+        <div className="tape absolute inset-x-0 top-0 h-1.5" />
+        <div className="flex flex-wrap items-start justify-between gap-4 pt-2">
+          <div>
+            <p className="font-mono text-xs tracking-[0.3em] text-amber">
+              MISSION {String(mission.number).padStart(2, "0")}
+            </p>
+            <h1 className="font-display mt-2 break-words text-3xl font-bold uppercase leading-none tracking-wide sm:text-6xl">
+              {mission.name}
+            </h1>
+          </div>
+          {allDone && (
+            <div className="stamp font-display text-xl tracking-[0.2em]">
+              MISSION COMPLETE
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8">
+          <div className="flex items-end justify-between">
+            <p className="font-mono text-xs tracking-[0.3em] text-zinc-500">
+              MISSION SCORE
+            </p>
+            <p
+              className={`font-display text-5xl leading-none sm:text-6xl ${
+                allDone ? "text-ok" : "text-amber"
+              }`}
+            >
+              {percent}%
+            </p>
+          </div>
+          <div className="mt-3 h-5 border border-line bg-black/70 p-0.5">
+            <div
+              className={`stripes h-full transition-all duration-500 ${
+                allDone ? "bg-ok" : "bg-amber"
+              }`}
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+          <p className="mt-2 font-mono text-xs tracking-widest text-zinc-500">
+            OBJECTIVES {completed}/{objs.length} COMPLETE
+          </p>
+        </div>
+      </header>
+
+      <Section title="Main Objectives">
+        <ul className="flex flex-col gap-3">
+          {mains.map((o, i) => (
+            <Row key={o.id} o={o} index={i} value={val(o)} onSet={(n) => set(o.id, n)} />
+          ))}
+        </ul>
+      </Section>
+
+      <Section title="Soft Objectives">
+        <ul className="flex flex-col gap-3">
+          {softs.map((o, i) => (
+            <Row key={o.id} o={o} index={i} value={val(o)} onSet={(n) => set(o.id, n)} />
+          ))}
+        </ul>
+      </Section>
+
+      <div className="mt-8 flex flex-wrap items-center gap-3 font-mono text-sm">
+        {confirmReset ? (
+          <>
+            <span className="text-danger">ALLES ZURÜCKSETZEN?</span>
+            <button
+              onClick={() => {
+                setCounts(zero(mission));
+                setConfirmReset(false);
+              }}
+              className="btn btn-danger px-4 py-2"
+            >
+              JA
+            </button>
+            <button
+              onClick={() => setConfirmReset(false)}
+              className="btn px-4 py-2"
+            >
+              ABBRECHEN
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => setConfirmReset(true)}
+            className="btn px-4 py-2 text-zinc-500"
+          >
+            ↺ MISSION ZURÜCKSETZEN
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
