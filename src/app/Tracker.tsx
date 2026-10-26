@@ -1,12 +1,23 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import type { Mission, Objective } from "./missions";
+import {
+  getManualPersonnelCounters,
+  personnelCounterKeys,
+  type Mission,
+  type Objective,
+  type PersonnelCounter,
+} from "./missions";
 import {
   emptyCounts,
   parseStoredCounts,
   type Counts,
 } from "./tracker-storage";
+
+const personnelCounterTitles: Record<PersonnelCounter, string> = {
+  suspects: "Suspects",
+  civilians: "Civilians",
+};
 
 function Pips({
   objectiveTitle,
@@ -147,6 +158,65 @@ function Row({
   );
 }
 
+function PersonnelCounterRow({
+  title,
+  value,
+  onSet,
+}: {
+  title: string;
+  value: number;
+  onSet: (n: number) => void;
+}) {
+  return (
+    <li className="panel relative p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="font-mono text-[11px] tracking-[0.25em] text-zinc-500">
+            PERSONNEL COUNT
+          </p>
+          <h3 className="font-display text-xl uppercase tracking-wide sm:text-2xl">
+            {title}
+          </h3>
+          <p className="text-lg leading-tight text-zinc-400">
+            Total unknown; track manually.
+          </p>
+        </div>
+
+        <div className="flex w-full shrink-0 items-center justify-between gap-2 sm:w-auto sm:justify-end">
+          <output
+            aria-label={`${title} counted`}
+            aria-live="polite"
+            className="font-mono text-4xl leading-none text-amber"
+          >
+            {value}
+            <span className="text-xl text-zinc-600">/?</span>
+          </output>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => onSet(Math.max(0, value - 1))}
+              className="btn h-11 w-11 text-2xl"
+              aria-label={`Decrease ${title} count`}
+            >
+              −
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                onSet(Math.min(Number.MAX_SAFE_INTEGER, value + 1))
+              }
+              className="btn btn-primary h-11 w-11 text-2xl"
+              aria-label={`Increase ${title} count`}
+            >
+              +
+            </button>
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 function Section({
   title,
   children,
@@ -238,6 +308,7 @@ export default function Tracker({ mission }: { mission: Mission }) {
   const objs = mission.objectives;
   const mains = objs.filter((o) => o.type === "main");
   const softs = objs.filter((o) => o.type === "soft");
+  const manualPersonnelCounters = getManualPersonnelCounters(mission);
 
   const totalTarget = objs.reduce((s, o) => s + o.target, 0);
   const totalDone = objs.reduce((s, o) => s + val(o), 0);
@@ -316,6 +387,21 @@ export default function Tracker({ mission }: { mission: Mission }) {
           ))}
         </ul>
       </Section>
+
+      {manualPersonnelCounters.length > 0 && (
+        <Section title="Personnel Counts">
+          <ul className="flex flex-col gap-3">
+            {manualPersonnelCounters.map((counter) => (
+              <PersonnelCounterRow
+                key={counter}
+                title={personnelCounterTitles[counter]}
+                value={counts[personnelCounterKeys[counter]] ?? 0}
+                onSet={(n) => set(personnelCounterKeys[counter], n)}
+              />
+            ))}
+          </ul>
+        </Section>
+      )}
 
       <Section title="Soft Objectives">
         <ul className="flex flex-col gap-3">

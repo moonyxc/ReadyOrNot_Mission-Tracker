@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { missions, type Mission } from "./missions";
+import {
+  getManualPersonnelCounters,
+  missions,
+  personnelCounterKeys,
+  type Mission,
+} from "./missions";
 import { emptyCounts, parseStoredCounts } from "./tracker-storage";
 
 const sampleMission: Mission = {
@@ -27,14 +32,21 @@ const sampleMission: Mission = {
   ],
 };
 
+const emptySampleCounts = {
+  suspects: 0,
+  hostages: 0,
+  [personnelCounterKeys.suspects]: 0,
+  [personnelCounterKeys.civilians]: 0,
+};
+
 describe("stored tracker progress", () => {
-  it("initializes every objective at zero", () => {
-    expect(emptyCounts(sampleMission)).toEqual({ suspects: 0, hostages: 0 });
+  it("initializes objectives and personnel counters at zero", () => {
+    expect(emptyCounts(sampleMission)).toEqual(emptySampleCounts);
   });
 
   it("loads saved progress and defaults missing objectives to zero", () => {
     expect(parseStoredCounts('{"suspects":2}', sampleMission)).toEqual({
-      counts: { suspects: 2, hostages: 0 },
+      counts: { ...emptySampleCounts, suspects: 2 },
       invalid: false,
     });
   });
@@ -43,7 +55,38 @@ describe("stored tracker progress", () => {
     expect(
       parseStoredCounts('{"suspects":9,"hostages":-1}', sampleMission),
     ).toEqual({
-      counts: { suspects: 3, hostages: 0 },
+      counts: { ...emptySampleCounts, suspects: 3, hostages: 0 },
+      invalid: true,
+    });
+  });
+
+  it("loads manual personnel counts without a fixed target", () => {
+    expect(
+      parseStoredCounts(
+        '{"personnel-suspects":8,"personnel-civilians":2}',
+        sampleMission,
+      ),
+    ).toEqual({
+      counts: {
+        ...emptySampleCounts,
+        [personnelCounterKeys.suspects]: 8,
+        [personnelCounterKeys.civilians]: 2,
+      },
+      invalid: false,
+    });
+  });
+
+  it("normalizes invalid manual personnel counts", () => {
+    expect(
+      parseStoredCounts(
+        '{"personnel-suspects":-1,"personnel-civilians":1.8}',
+        sampleMission,
+      ),
+    ).toEqual({
+      counts: {
+        ...emptySampleCounts,
+        [personnelCounterKeys.civilians]: 1,
+      },
       invalid: true,
     });
   });
@@ -51,7 +94,7 @@ describe("stored tracker progress", () => {
   it("resets malformed or non-object saved data", () => {
     for (const raw of ["{", "null", "[]", '"not counts"']) {
       expect(parseStoredCounts(raw, sampleMission)).toEqual({
-        counts: { suspects: 0, hostages: 0 },
+        counts: emptySampleCounts,
         invalid: true,
       });
     }
@@ -61,7 +104,7 @@ describe("stored tracker progress", () => {
     expect(
       parseStoredCounts('{"suspects":"two","hostages":1}', sampleMission),
     ).toEqual({
-      counts: { suspects: 0, hostages: 1 },
+      counts: { ...emptySampleCounts, suspects: 0, hostages: 1 },
       invalid: true,
     });
   });
@@ -92,5 +135,44 @@ describe("mission data", () => {
         }
       }
     }
+  });
+
+  it("tracks suspects and civilians in every mission", () => {
+    for (const mission of missions) {
+      const manualCounters = getManualPersonnelCounters(mission);
+      const suspectObjectiveCount = mission.objectives.some(
+        (objective) =>
+          objective.id === "bring-order-to-chaos" &&
+          objective.kind === "count",
+      );
+      const civilianObjectiveCount = mission.objectives.some(
+        (objective) =>
+          objective.id === "rescue-all-of-the-civilians" &&
+          objective.kind === "count",
+      );
+
+      expect(suspectObjectiveCount || manualCounters.includes("suspects")).toBe(
+        true,
+      );
+      expect(
+        civilianObjectiveCount || manualCounters.includes("civilians"),
+      ).toBe(true);
+    }
+  });
+
+  it("keeps Mission 10's existing suspect and civilian targets", () => {
+    const missionTen = missions.find((mission) => mission.number === 10);
+    expect(
+      missionTen?.objectives
+        .filter(
+          (objective) =>
+            objective.id === "bring-order-to-chaos" ||
+            objective.id === "rescue-all-of-the-civilians",
+        )
+        .map(({ id, kind, target }) => ({ id, kind, target })),
+    ).toEqual([
+      { id: "bring-order-to-chaos", kind: "count", target: 15 },
+      { id: "rescue-all-of-the-civilians", kind: "count", target: 11 },
+    ]);
   });
 });

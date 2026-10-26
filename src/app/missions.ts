@@ -18,6 +18,32 @@ export type Mission = {
   objectives: Objective[];
 };
 
+const personnelCounterCategories = ["suspects", "civilians"] as const;
+
+export type PersonnelCounter = (typeof personnelCounterCategories)[number];
+
+export const personnelCounterKeys: Record<PersonnelCounter, string> = {
+  suspects: "personnel-suspects",
+  civilians: "personnel-civilians",
+};
+
+const personnelObjectiveIds: Record<PersonnelCounter, string> = {
+  suspects: "bring-order-to-chaos",
+  civilians: "rescue-all-of-the-civilians",
+};
+
+export function getManualPersonnelCounters(
+  mission: Mission,
+): PersonnelCounter[] {
+  return personnelCounterCategories.filter((counter) => {
+    const objectiveId = personnelObjectiveIds[counter];
+    return !mission.objectives.some(
+      (objective) =>
+        objective.id === objectiveId && objective.kind === "count",
+    );
+  });
+}
+
 export const missions: Mission[] = [
   {
     id: "thank-you-come-again",
@@ -229,8 +255,8 @@ export const missions: Mission[] = [
         id: "bring-order-to-chaos",
         title: "Bring Order to Chaos",
         description: "Arrest or neutralize any contact at the scene.",
-        kind: "check",
-        target: 1,
+        kind: "count",
+        target: 3,
         type: "main",
       },
       {
@@ -517,8 +543,8 @@ export const missions: Mission[] = [
         id: "bring-order-to-chaos",
         title: "Bring Order to Chaos",
         description: "Arrest or neutralize any contact at the scene.",
-        kind: "check",
-        target: 1,
+        kind: "count",
+        target: 4,
         type: "main",
       },
       {

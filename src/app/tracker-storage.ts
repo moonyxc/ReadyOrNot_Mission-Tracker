@@ -1,4 +1,4 @@
-import type { Mission } from "./missions";
+import { personnelCounterKeys, type Mission } from "./missions";
 
 export type Counts = Record<string, number>;
 
@@ -7,9 +7,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function emptyCounts(mission: Mission): Counts {
-  return Object.fromEntries(
-    mission.objectives.map((objective) => [objective.id, 0]),
-  );
+  return Object.fromEntries([
+    ...mission.objectives.map((objective) => [objective.id, 0]),
+    ...Object.values(personnelCounterKeys).map((id) => [id, 0]),
+  ]);
 }
 
 export function parseStoredCounts(
@@ -47,6 +48,23 @@ export function parseStoredCounts(
     );
     if (normalized !== value) invalid = true;
     counts[objective.id] = normalized;
+  }
+
+  for (const id of Object.values(personnelCounterKeys)) {
+    const value = parsed[id];
+    if (value === undefined) continue;
+
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      invalid = true;
+      continue;
+    }
+
+    const normalized = Math.max(
+      0,
+      Math.min(Number.MAX_SAFE_INTEGER, Math.floor(value)),
+    );
+    if (normalized !== value) invalid = true;
+    counts[id] = normalized;
   }
 
   return { counts, invalid };
