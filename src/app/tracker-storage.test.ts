@@ -175,4 +175,21 @@ describe("mission data", () => {
       { id: "rescue-all-of-the-civilians", kind: "count", target: 11 },
     ]);
   });
+
+  it("tracks Rust Belt's suspect and civilian targets", () => {
+    const rustBelt = missions.find((mission) => mission.id === "rust-belt");
+    expect(
+      rustBelt?.objectives
+        .filter(
+          (objective) =>
+            objective.id === "bring-order-to-chaos" ||
+            objective.id === "rescue-all-of-the-civilians",
+        )
+        .map(({ id, kind, target }) => ({ id, kind, target })),
+    ).toEqual([
+      { id: "bring-order-to-chaos", kind: "count", target: 14 },
+      { id: "rescue-all-of-the-civilians", kind: "count", target: 2 },
+    ]);
+    expect(rustBelt && getManualPersonnelCounters(rustBelt)).toEqual([]);
+  });
 });
