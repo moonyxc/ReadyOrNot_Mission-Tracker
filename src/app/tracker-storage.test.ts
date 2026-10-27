@@ -192,4 +192,23 @@ describe("mission data", () => {
     ]);
     expect(rustBelt && getManualPersonnelCounters(rustBelt)).toEqual([]);
   });
+
+  it("tracks Carriers of the Vine's suspect and civilian targets", () => {
+    const carriers = missions.find(
+      (mission) => mission.id === "carriers-of-the-vine",
+    );
+    expect(
+      carriers?.objectives
+        .filter(
+          (objective) =>
+            objective.id === "bring-order-to-chaos" ||
+            objective.id === "rescue-all-of-the-civilians",
+        )
+        .map(({ id, kind, target }) => ({ id, kind, target })),
+    ).toEqual([
+      { id: "bring-order-to-chaos", kind: "count", target: 13 },
+      { id: "rescue-all-of-the-civilians", kind: "count", target: 5 },
+    ]);
+    expect(carriers && getManualPersonnelCounters(carriers)).toEqual([]);
+  });
 });
