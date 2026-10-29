@@ -199,32 +199,40 @@ describe("mission data", () => {
     }
   });
 
-  it("tracks non-evidence score stats without duplicate personnel counters", () => {
+  it("tracks known personnel totals as objective counts", () => {
     const mission = missionById("thank-you-come-again");
 
     expect(
-      mission.scoreStats?.map(({ title, target }) => ({ title, target })),
+      mission.objectives
+        .filter(
+          (objective) =>
+            objective.id === "bring-order-to-chaos" ||
+            objective.id === "rescue-all-of-the-civilians",
+        )
+        .map(({ id, kind, target }) => ({ id, kind, target })),
     ).toEqual([
-      { title: "Suspects Secured", target: 4 },
-      { title: "Civilians Secured", target: 6 },
-      { title: "No Officers Dead", target: 1 },
+      { id: "bring-order-to-chaos", kind: "count", target: 4 },
+      { id: "rescue-all-of-the-civilians", kind: "count", target: 6 },
     ]);
+    expect(
+      mission.scoreStats?.map(({ title, target }) => ({ title, target })),
+    ).toEqual([{ title: "No Officers Dead", target: 1 }]);
     expect(getManualPersonnelCounters(mission)).toEqual([]);
   });
 
-  it("clamps previously saved personnel values to the new score-stat targets", () => {
+  it("migrates saved personnel counts into the corresponding objectives", () => {
     const mission = missionById("thank-you-come-again");
 
     expect(
       parseStoredCounts(
-        '{"personnel-suspects":9,"personnel-civilians":7}',
+        '{"bring-order-to-chaos":1,"rescue-all-of-the-civilians":0,"personnel-suspects":9,"personnel-civilians":3}',
         mission,
       ),
     ).toEqual({
       counts: {
         ...emptyCounts(mission),
-        [personnelCounterKeys.suspects]: 4,
-        [personnelCounterKeys.civilians]: 6,
+        "bring-order-to-chaos": 4,
+        "rescue-all-of-the-civilians": 3,
       },
       invalid: true,
     });

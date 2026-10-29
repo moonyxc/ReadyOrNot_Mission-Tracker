@@ -25,7 +25,7 @@ export type Mission = {
   scoreStats?: MissionScoreStat[];
 };
 
-const personnelCounterCategories = ["suspects", "civilians"] as const;
+export const personnelCounterCategories = ["suspects", "civilians"] as const;
 
 export type PersonnelCounter = (typeof personnelCounterCategories)[number];
 
@@ -39,20 +39,28 @@ const personnelObjectiveIds: Record<PersonnelCounter, string> = {
   civilians: "rescue-all-of-the-civilians",
 };
 
+export function getPersonnelCountObjective(
+  mission: Mission,
+  counter: PersonnelCounter,
+): Objective | undefined {
+  const objectiveId = personnelObjectiveIds[counter];
+  return mission.objectives.find(
+    (objective) =>
+      objective.id === objectiveId && objective.kind === "count",
+  );
+}
+
 export function getManualPersonnelCounters(
   mission: Mission,
 ): PersonnelCounter[] {
   const scoreStatIds = new Set(
     (mission.scoreStats ?? []).map((stat) => stat.id),
   );
-
-  return personnelCounterCategories.filter((counter) => {
-    const objectiveId = personnelObjectiveIds[counter];
-    return !mission.objectives.some(
-      (objective) =>
-        objective.id === objectiveId && objective.kind === "count",
-    ) && !scoreStatIds.has(personnelCounterKeys[counter]);
-  });
+  return personnelCounterCategories.filter(
+    (counter) =>
+      !getPersonnelCountObjective(mission, counter) &&
+      !scoreStatIds.has(personnelCounterKeys[counter]),
+  );
 }
 
 export const missions: Mission[] = [
@@ -66,16 +74,16 @@ export const missions: Mission[] = [
         id: "bring-order-to-chaos",
         title: "Bring Order to Chaos",
         description: "Arrest or neutralize any contact at the scene.",
-        kind: "check",
-        target: 1,
+        kind: "count",
+        target: 4,
         type: "main",
       },
       {
         id: "rescue-all-of-the-civilians",
         title: "Rescue All of the Civilians",
         description: "Detain any unarmed contacts at the scene.",
-        kind: "check",
-        target: 1,
+        kind: "count",
+        target: 6,
         type: "main",
       },
       {
@@ -104,16 +112,6 @@ export const missions: Mission[] = [
       },
     ],
     scoreStats: [
-      {
-        id: personnelCounterKeys.suspects,
-        title: "Suspects Secured",
-        target: 4,
-      },
-      {
-        id: personnelCounterKeys.civilians,
-        title: "Civilians Secured",
-        target: 6,
-      },
       {
         id: "score-no-officers-dead",
         title: "No Officers Dead",
