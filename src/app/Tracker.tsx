@@ -5,6 +5,7 @@ import {
   getManualPersonnelCounters,
   personnelCounterKeys,
   type Mission,
+  type MissionScoreStat,
   type Objective,
   type PersonnelCounter,
 } from "./missions";
@@ -217,6 +218,64 @@ function PersonnelCounterRow({
   );
 }
 
+function ScoreStatRow({
+  stat,
+  value,
+  onSet,
+}: {
+  stat: MissionScoreStat;
+  value: number;
+  onSet: (n: number) => void;
+}) {
+  const complete = value >= stat.target;
+
+  return (
+    <li className="panel relative p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="font-mono text-[11px] tracking-[0.25em] text-zinc-500">
+            SCORE STAT
+          </p>
+          <h3 className="font-display text-xl uppercase tracking-wide sm:text-2xl">
+            {stat.title}
+          </h3>
+        </div>
+
+        <div className="flex w-full shrink-0 items-center justify-between gap-2 sm:w-auto sm:justify-end">
+          <output
+            aria-label={`${stat.title} score`}
+            aria-live="polite"
+            className={`font-mono text-4xl leading-none ${
+              complete ? "text-ok" : "text-amber"
+            }`}
+          >
+            {value}
+            <span className="text-xl text-zinc-600">/{stat.target}</span>
+          </output>
+          <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => onSet(Math.max(0, value - 1))}
+              className="btn h-11 w-11 text-2xl"
+              aria-label={`Decrease ${stat.title}`}
+            >
+              −
+            </button>
+            <button
+              type="button"
+              onClick={() => onSet(Math.min(stat.target, value + 1))}
+              className="btn btn-primary h-11 w-11 text-2xl"
+              aria-label={`Increase ${stat.title}`}
+            >
+              +
+            </button>
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
 function Section({
   title,
   children,
@@ -303,11 +362,14 @@ export default function Tracker({ mission }: { mission: Mission }) {
 
   const val = (o: Objective) =>
     Math.max(0, Math.min(counts[o.id] ?? 0, o.target));
+  const scoreStatVal = (stat: MissionScoreStat) =>
+    Math.max(0, Math.min(counts[stat.id] ?? 0, stat.target));
   const done = (o: Objective) => val(o) >= o.target;
 
   const objs = mission.objectives;
   const mains = objs.filter((o) => o.type === "main");
   const softs = objs.filter((o) => o.type === "soft");
+  const scoreStats = mission.scoreStats ?? [];
   const manualPersonnelCounters = getManualPersonnelCounters(mission);
 
   const totalTarget = objs.reduce((s, o) => s + o.target, 0);
@@ -410,6 +472,21 @@ export default function Tracker({ mission }: { mission: Mission }) {
           ))}
         </ul>
       </Section>
+
+      {scoreStats.length > 0 && (
+        <Section title="Score Stats">
+          <ul className="flex flex-col gap-3">
+            {scoreStats.map((stat) => (
+              <ScoreStatRow
+                key={stat.id}
+                stat={stat}
+                value={scoreStatVal(stat)}
+                onSet={(n) => set(stat.id, n)}
+              />
+            ))}
+          </ul>
+        </Section>
+      )}
 
       <div className="mt-8 flex flex-wrap items-center gap-3 font-mono text-sm">
         {confirmReset ? (

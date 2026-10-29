@@ -25,9 +25,10 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Updating mission data
 
 Edit `src/app/missions.ts` to add or update missions. Each mission needs a
-unique ID and number. Objective IDs must be unique within a mission, targets
-must be positive integers, and `check` objectives must have a target of `1`.
-The tests validate these data rules.
+unique ID and number. Objective and score-stat IDs must be unique within a
+mission; all targets must be positive integers, and `check` objectives must
+have a target of `1`. Optional score stats are tracked separately from
+objective completion. The tests validate these data rules.
 
 Progress is stored in the browser's local storage on the current device and
 browser; it is not synchronized between devices.

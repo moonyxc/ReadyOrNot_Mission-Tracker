@@ -10,12 +10,19 @@ export type Objective = {
   type: ObjectiveType;
 };
 
+export type MissionScoreStat = {
+  id: string;
+  title: string;
+  target: number;
+};
+
 export type Mission = {
   id: string;
   number: number;
   name: string;
   group: string;
   objectives: Objective[];
+  scoreStats?: MissionScoreStat[];
 };
 
 const personnelCounterCategories = ["suspects", "civilians"] as const;
@@ -35,12 +42,16 @@ const personnelObjectiveIds: Record<PersonnelCounter, string> = {
 export function getManualPersonnelCounters(
   mission: Mission,
 ): PersonnelCounter[] {
+  const scoreStatIds = new Set(
+    (mission.scoreStats ?? []).map((stat) => stat.id),
+  );
+
   return personnelCounterCategories.filter((counter) => {
     const objectiveId = personnelObjectiveIds[counter];
     return !mission.objectives.some(
       (objective) =>
         objective.id === objectiveId && objective.kind === "count",
-    );
+    ) && !scoreStatIds.has(personnelCounterKeys[counter]);
   });
 }
 
@@ -90,6 +101,23 @@ export const missions: Mission[] = [
         kind: "check",
         target: 1,
         type: "soft",
+      },
+    ],
+    scoreStats: [
+      {
+        id: personnelCounterKeys.suspects,
+        title: "Suspects Secured",
+        target: 4,
+      },
+      {
+        id: personnelCounterKeys.civilians,
+        title: "Civilians Secured",
+        target: 6,
+      },
+      {
+        id: "score-no-officers-dead",
+        title: "No Officers Dead",
+        target: 1,
       },
     ],
   },
