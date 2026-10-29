@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   getManualPersonnelCounters,
   personnelCounterKeys,
@@ -388,6 +389,44 @@ export default function Tracker({ mission }: { mission: Mission }) {
 
   return (
     <div className="w-full">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 font-mono text-sm">
+        <Link
+          href="/"
+          className="btn px-4 py-2 text-police hover:text-amber"
+        >
+          ◀ BACK TO MISSION SELECT
+        </Link>
+        {confirmReset ? (
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-danger">RESET MISSION?</span>
+            <button
+              type="button"
+              onClick={() => {
+                setCounts(emptyCounts(mission));
+                setConfirmReset(false);
+              }}
+              className="btn btn-danger px-4 py-2"
+            >
+              YES
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmReset(false)}
+              className="btn px-4 py-2"
+            >
+              CANCEL
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirmReset(true)}
+            className="btn px-4 py-2 text-zinc-500"
+          >
+            ↺ RESET MISSION
+          </button>
+        )}
+      </div>
       <header className="panel relative overflow-hidden p-4 sm:p-8">
         <div className="tape absolute inset-x-0 top-0 h-1.5" />
         <div className="flex flex-wrap items-start justify-between gap-4 pt-2">
@@ -497,38 +536,6 @@ export default function Tracker({ mission }: { mission: Mission }) {
         </Section>
       )}
 
-      <div className="mt-8 flex flex-wrap items-center gap-3 font-mono text-sm">
-        {confirmReset ? (
-          <>
-            <span className="text-danger">RESET MISSION?</span>
-            <button
-              type="button"
-              onClick={() => {
-                setCounts(emptyCounts(mission));
-                setConfirmReset(false);
-              }}
-              className="btn btn-danger px-4 py-2"
-            >
-              YES
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmReset(false)}
-              className="btn px-4 py-2"
-            >
-              CANCEL
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setConfirmReset(true)}
-            className="btn px-4 py-2 text-zinc-500"
-          >
-            ↺ RESET MISSION
-          </button>
-        )}
-      </div>
     </div>
   );
 }
