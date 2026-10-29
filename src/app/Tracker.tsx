@@ -69,7 +69,8 @@ function Row({
   value: number;
   onSet: (n: number) => void;
 }) {
-  const complete = value >= o.target;
+  const max = o.target ?? Number.MAX_SAFE_INTEGER;
+  const complete = o.target !== null && value >= o.target;
   return (
     <li className={`panel relative p-4 sm:p-5 ${complete ? "panel-done" : ""}`}>
       <div className="flex flex-wrap items-start gap-3 sm:flex-nowrap sm:gap-4">
@@ -99,7 +100,7 @@ function Row({
             {o.title}
           </h3>
           <p className="text-lg leading-tight text-zinc-400">{o.description}</p>
-          {o.kind === "count" && (
+          {o.kind === "count" && o.target !== null && (
             <Pips
               objectiveTitle={o.title}
               value={value}
@@ -117,7 +118,7 @@ function Row({
               }`}
             >
               {value}
-              <span className="text-xl text-zinc-600">/{o.target}</span>
+              <span className="text-xl text-zinc-600">/{o.target ?? "?"}</span>
             </p>
             <div className="flex gap-1.5">
               <button
@@ -130,7 +131,7 @@ function Row({
               </button>
               <button
                 type="button"
-                onClick={() => onSet(Math.min(o.target, value + 1))}
+                onClick={() => onSet(Math.min(max, value + 1))}
                 className="btn btn-primary h-11 w-11 text-2xl"
                 aria-label={`Increase ${o.title}`}
               >
@@ -361,10 +362,14 @@ export default function Tracker({ mission }: { mission: Mission }) {
     setCounts((c) => ({ ...c, [id]: n }));
 
   const val = (o: Objective) =>
-    Math.max(0, Math.min(counts[o.id] ?? 0, o.target));
+    Math.max(
+      0,
+      Math.min(counts[o.id] ?? 0, o.target ?? Number.MAX_SAFE_INTEGER),
+    );
   const scoreStatVal = (stat: MissionScoreStat) =>
     Math.max(0, Math.min(counts[stat.id] ?? 0, stat.target));
-  const done = (o: Objective) => val(o) >= o.target;
+  const done = (o: Objective) =>
+    o.target !== null && val(o) >= o.target;
 
   const objs = mission.objectives;
   const mains = objs.filter((o) => o.type === "main");
@@ -372,11 +377,14 @@ export default function Tracker({ mission }: { mission: Mission }) {
   const scoreStats = mission.scoreStats ?? [];
   const manualPersonnelCounters = getManualPersonnelCounters(mission);
 
-  const totalTarget = objs.reduce((s, o) => s + o.target, 0);
-  const totalDone = objs.reduce((s, o) => s + val(o), 0);
+  const knownObjectives = objs.filter((o) => o.target !== null);
+  const unknownTargetCount = objs.length - knownObjectives.length;
+  const totalTarget = knownObjectives.reduce((s, o) => s + (o.target ?? 0), 0);
+  const totalDone = knownObjectives.reduce((s, o) => s + val(o), 0);
   const percent = totalTarget ? Math.round((totalDone / totalTarget) * 100) : 0;
-  const completed = objs.filter(done).length;
-  const allDone = completed === objs.length;
+  const completed = knownObjectives.filter(done).length;
+  const allDone =
+    knownObjectives.length > 0 && completed === knownObjectives.length;
 
   return (
     <div className="w-full">
@@ -429,7 +437,8 @@ export default function Tracker({ mission }: { mission: Mission }) {
             />
           </div>
           <p className="mt-2 font-mono text-xs tracking-widest text-zinc-500">
-            OBJECTIVES {completed}/{objs.length} COMPLETE
+            OBJECTIVES {completed}/{knownObjectives.length} COMPLETE
+            {unknownTargetCount > 0 && ` · ${unknownTargetCount} TARGETS UNKNOWN`}
           </p>
         </div>
         {storageStatus?.key === key && storageStatus.message && (

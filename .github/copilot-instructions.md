@@ -23,9 +23,10 @@ evidence as objectives.
 
 ## Mission data and UI conventions
 
-- Mission IDs and numbers must be unique. Objective and score-stat IDs must be unique within a mission; targets are positive integers, and `check` objectives have target `1`. `type: "main" | "soft"` controls objective grouping.
+- Mission IDs and numbers must be unique. Objective and score-stat IDs must be unique within a mission. `check` objectives have target `1`; `count` objectives use a positive integer target or `null` when unknown. `type: "main" | "soft"` controls objective grouping.
 - Score stats are optional and separate from objective completion totals. Keep score-only values in `scoreStats`, not in `objectives`.
-- When a score stat replaces a manual suspects or civilians counter, reuse its `personnelCounterKeys` ID. This preserves previously saved counts and prevents a duplicate manual counter.
+- Use `count` objectives for `bring-order-to-chaos` and `rescue-all-of-the-civilians` whenever those objectives exist, as in `carriers-of-the-vine`. Use the known total or `null` when unknown; `null` displays as `/?` and is excluded from aggregate progress/completion until a target is set. Do not duplicate these counters in `scoreStats`. For a personnel type without a corresponding objective, keep its manual `/?` counter.
+- When a score stat replaces an unknown manual personnel counter, reuse its `personnelCounterKeys` ID to preserve saved counts and avoid duplicate counters.
 - Objective and stat IDs are local-storage keys. Keep IDs stable when editing mission data so existing progress remains associated with the same item.
 - Tracker styling uses Tailwind utility classes and shared HUD classes/tokens from `src/app/globals.css`; the font variables are configured in `src/app/layout.tsx`.
 - `src/app/tracker-storage.test.ts` covers storage normalization and mission-data invariants. Update it when changing those rules or adding mission data.

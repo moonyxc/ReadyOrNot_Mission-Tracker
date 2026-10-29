@@ -59,7 +59,7 @@ export function parseStoredCounts(
 
     const normalized = Math.max(
       0,
-      Math.min(objective.target, Math.floor(value)),
+      Math.min(objective.target ?? Number.MAX_SAFE_INTEGER, Math.floor(value)),
     );
     if (normalized !== value) invalid = true;
     counts[objective.id] = normalized;
@@ -95,7 +95,10 @@ export function parseStoredCounts(
 
       const normalized = Math.max(
         0,
-        Math.min(objective.target, Math.floor(value)),
+        Math.min(
+          objective.target ?? Number.MAX_SAFE_INTEGER,
+          Math.floor(value),
+        ),
       );
       if (normalized !== value) invalid = true;
       counts[objective.id] = Math.max(counts[objective.id] ?? 0, normalized);

@@ -26,9 +26,11 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Edit `src/app/missions.ts` to add or update missions. Each mission needs a
 unique ID and number. Objective and score-stat IDs must be unique within a
-mission; all targets must be positive integers, and `check` objectives must
-have a target of `1`. Optional score stats are tracked separately from
-objective completion. The tests validate these data rules.
+mission. `check` objectives have a target of `1`; `count` objectives use a
+positive integer target or `null` when the total is unknown. Unknown totals
+display as `?` and are excluded from aggregate progress and completion until
+set. Optional score stats use positive integer targets and are tracked
+separately from objective completion. The tests validate these data rules.
 
 Progress is stored in the browser's local storage on the current device and
 browser; it is not synchronized between devices.

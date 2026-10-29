@@ -29,6 +29,14 @@ const sampleMission: Mission = {
       target: 1,
       type: "soft",
     },
+    {
+      id: "unknown-count",
+      title: "Unknown total",
+      description: "",
+      kind: "count",
+      target: null,
+      type: "main",
+    },
   ],
   scoreStats: [
     { id: "performance-score", title: "Performance Score", target: 4 },
@@ -39,6 +47,7 @@ const sampleMission: Mission = {
 const emptySampleCounts = {
   suspects: 0,
   hostages: 0,
+  "unknown-count": 0,
   [personnelCounterKeys.suspects]: 0,
   [personnelCounterKeys.civilians]: 0,
   "performance-score": 0,
@@ -66,7 +75,7 @@ describe("stored tracker progress", () => {
   it("clamps saved counts to their configured targets", () => {
     expect(
       parseStoredCounts(
-        '{"suspects":9,"hostages":-1,"performance-score":9,"no-officers-dead":-1}',
+        '{"suspects":9,"hostages":-1,"unknown-count":9,"performance-score":9,"no-officers-dead":-1}',
         sampleMission,
       ),
     ).toEqual({
@@ -74,6 +83,7 @@ describe("stored tracker progress", () => {
         ...emptySampleCounts,
         suspects: 3,
         hostages: 0,
+        "unknown-count": 9,
         "performance-score": 4,
       },
       invalid: true,
@@ -155,8 +165,12 @@ describe("mission data", () => {
       expect(new Set(ids).size).toBe(ids.length);
 
       for (const objective of mission.objectives) {
-        expect(Number.isInteger(objective.target)).toBe(true);
-        expect(objective.target).toBeGreaterThan(0);
+        if (objective.target === null) {
+          expect(objective.kind).toBe("count");
+        } else {
+          expect(Number.isInteger(objective.target)).toBe(true);
+          expect(objective.target).toBeGreaterThan(0);
+        }
         if (objective.kind === "check") {
           expect(objective.target).toBe(1);
         }
@@ -175,24 +189,24 @@ describe("mission data", () => {
       const scoreStatIds = new Set(
         (mission.scoreStats ?? []).map((stat) => stat.id),
       );
-      const suspectObjectiveCount = mission.objectives.some(
+      const suspectObjective = mission.objectives.find(
         (objective) =>
-          objective.id === "bring-order-to-chaos" &&
-          objective.kind === "count",
+          objective.id === "bring-order-to-chaos",
       );
-      const civilianObjectiveCount = mission.objectives.some(
+      const civilianObjective = mission.objectives.find(
         (objective) =>
-          objective.id === "rescue-all-of-the-civilians" &&
-          objective.kind === "count",
+          objective.id === "rescue-all-of-the-civilians",
       );
 
+      if (suspectObjective) expect(suspectObjective.kind).toBe("count");
+      if (civilianObjective) expect(civilianObjective.kind).toBe("count");
       expect(
-        suspectObjectiveCount ||
+        Boolean(suspectObjective) ||
           manualCounters.includes("suspects") ||
           scoreStatIds.has(personnelCounterKeys.suspects),
       ).toBe(true);
       expect(
-        civilianObjectiveCount ||
+        Boolean(civilianObjective) ||
           manualCounters.includes("civilians") ||
           scoreStatIds.has(personnelCounterKeys.civilians),
       ).toBe(true);
