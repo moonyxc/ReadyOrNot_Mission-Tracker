@@ -234,6 +234,31 @@ describe("mission data", () => {
     expect(getManualPersonnelCounters(mission)).toEqual([]);
   });
 
+  it("uses the supplied totals and report objective for 23 Megabytes a Second", () => {
+    const mission = missionById("23-megabytes-a-second");
+    const personnelTargets = mission.objectives
+      .filter(
+        (objective) =>
+          objective.id === "bring-order-to-chaos" ||
+          objective.id === "rescue-all-of-the-civilians",
+      )
+      .map(({ id, kind, target }) => ({ id, kind, target }));
+
+    expect(personnelTargets).toEqual([
+      { id: "bring-order-to-chaos", kind: "count", target: 10 },
+      { id: "rescue-all-of-the-civilians", kind: "count", target: 5 },
+    ]);
+    expect(
+      mission.objectives.map((objective) => objective.id),
+    ).toContain("report-evidence-related-to-mindjot");
+    expect(
+      mission.objectives.map((objective) => objective.id),
+    ).not.toContain("report-prohibited-images-of-minors");
+    expect(mission.scoreStats?.map((stat) => stat.title)).toEqual([
+      "No Officers Dead",
+    ]);
+  });
+
   it("migrates saved personnel counts into the corresponding objectives", () => {
     const mission = missionById("thank-you-come-again");
 

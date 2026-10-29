@@ -130,7 +130,7 @@ export const missions: Mission[] = [
         title: "Bring Order to Chaos",
         description: "Arrest or neutralize any contact at the scene.",
         kind: "count",
-        target: null,
+        target: 10,
         type: "main",
       },
       {
@@ -138,7 +138,7 @@ export const missions: Mission[] = [
         title: "Rescue All of the Civilians",
         description: "Detain any unarmed contacts at the scene.",
         kind: "count",
-        target: null,
+        target: 5,
         type: "main",
       },
       {
@@ -166,12 +166,19 @@ export const missions: Mission[] = [
         type: "soft",
       },
       {
-        id: "report-prohibited-images-of-minors",
-        title: "Report Prohibited Images of Minors",
-        description: "Locate indecent and prohibited images of unidentified minors in the suspect's bedroom.",
+        id: "report-evidence-related-to-mindjot",
+        title: "Report Evidence Related to 'Mindjot'",
+        description: "Locate and report evidence related to 'Mindjot'.",
         kind: "check",
         target: 1,
         type: "soft",
+      },
+    ],
+    scoreStats: [
+      {
+        id: "score-no-officers-dead",
+        title: "No Officers Dead",
+        target: 1,
       },
     ],
   },
