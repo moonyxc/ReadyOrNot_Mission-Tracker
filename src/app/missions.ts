@@ -193,7 +193,7 @@ export const missions: Mission[] = [
         title: "Bring Order to Chaos",
         description: "Arrest or neutralize any contact at the scene.",
         kind: "count",
-        target: null,
+        target: 14,
         type: "main",
       },
       {
@@ -209,7 +209,7 @@ export const missions: Mission[] = [
         title: "Rescue All of the Civilians",
         description: "Detain any unarmed contacts at the scene.",
         kind: "count",
-        target: null,
+        target: 5,
         type: "main",
       },
       {
@@ -243,6 +243,23 @@ export const missions: Mission[] = [
         kind: "check",
         target: 1,
         type: "soft",
+      },
+    ],
+    scoreStats: [
+      {
+        id: "score-downed-officers-reported",
+        title: "Downed Officers Reported",
+        target: 1,
+      },
+      {
+        id: "score-evidence-secured",
+        title: "Evidence Secured",
+        target: 17,
+      },
+      {
+        id: "score-no-officers-dead",
+        title: "No Officers Dead",
+        target: 1,
       },
     ],
   },
