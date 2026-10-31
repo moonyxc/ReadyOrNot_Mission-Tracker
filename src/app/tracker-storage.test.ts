@@ -38,10 +38,6 @@ const sampleMission: Mission = {
       type: "main",
     },
   ],
-  scoreStats: [
-    { id: "performance-score", title: "Performance Score", target: 4 },
-    { id: "no-officers-dead", title: "No Officers Dead", target: 1 },
-  ],
 };
 
 const emptySampleCounts = {
@@ -50,8 +46,6 @@ const emptySampleCounts = {
   "unknown-count": 0,
   [personnelCounterKeys.suspects]: 0,
   [personnelCounterKeys.civilians]: 0,
-  "performance-score": 0,
-  "no-officers-dead": 0,
 };
 
 function missionById(id: string): Mission {
@@ -75,7 +69,7 @@ describe("stored tracker progress", () => {
   it("clamps saved counts to their configured targets", () => {
     expect(
       parseStoredCounts(
-        '{"suspects":9,"hostages":-1,"unknown-count":9,"performance-score":9,"no-officers-dead":-1}',
+        '{"suspects":9,"hostages":-1,"unknown-count":9}',
         sampleMission,
       ),
     ).toEqual({
@@ -84,7 +78,6 @@ describe("stored tracker progress", () => {
         suspects: 3,
         hostages: 0,
         "unknown-count": 9,
-        "performance-score": 4,
       },
       invalid: true,
     });
@@ -152,11 +145,7 @@ describe("mission data", () => {
 
   it("uses unique objective IDs and valid targets within each mission", () => {
     for (const mission of missions) {
-      const scoreStats = mission.scoreStats ?? [];
-      const ids = [
-        ...mission.objectives.map((objective) => objective.id),
-        ...scoreStats.map((stat) => stat.id),
-      ];
+      const ids = mission.objectives.map((objective) => objective.id);
 
       expect(mission.objectives.length).toBeGreaterThan(0);
       expect(
@@ -175,20 +164,12 @@ describe("mission data", () => {
           expect(objective.target).toBe(1);
         }
       }
-
-      for (const stat of scoreStats) {
-        expect(Number.isInteger(stat.target)).toBe(true);
-        expect(stat.target).toBeGreaterThan(0);
-      }
     }
   });
 
   it("tracks suspects and civilians in every mission", () => {
     for (const mission of missions) {
       const manualCounters = getManualPersonnelCounters(mission);
-      const scoreStatIds = new Set(
-        (mission.scoreStats ?? []).map((stat) => stat.id),
-      );
       const suspectObjective = mission.objectives.find(
         (objective) =>
           objective.id === "bring-order-to-chaos",
@@ -202,13 +183,11 @@ describe("mission data", () => {
       if (civilianObjective) expect(civilianObjective.kind).toBe("count");
       expect(
         Boolean(suspectObjective) ||
-          manualCounters.includes("suspects") ||
-          scoreStatIds.has(personnelCounterKeys.suspects),
+          manualCounters.includes("suspects"),
       ).toBe(true);
       expect(
         Boolean(civilianObjective) ||
-          manualCounters.includes("civilians") ||
-          scoreStatIds.has(personnelCounterKeys.civilians),
+          manualCounters.includes("civilians"),
       ).toBe(true);
     }
   });
@@ -228,13 +207,10 @@ describe("mission data", () => {
       { id: "bring-order-to-chaos", kind: "count", target: 4 },
       { id: "rescue-all-of-the-civilians", kind: "count", target: 6 },
     ]);
-    expect(
-      mission.scoreStats?.map(({ title, target }) => ({ title, target })),
-    ).toEqual([{ title: "No Officers Dead", target: 1 }]);
     expect(getManualPersonnelCounters(mission)).toEqual([]);
   });
 
-  it("tracks Twisted Nerve's personnel totals and score stats", () => {
+  it("tracks Twisted Nerve's personnel totals", () => {
     const mission = missionById("twisted-nerve");
 
     expect(
@@ -249,25 +225,10 @@ describe("mission data", () => {
       { id: "bring-order-to-chaos", kind: "count", target: 14 },
       { id: "rescue-all-of-the-civilians", kind: "count", target: 5 },
     ]);
-    expect(
-      mission.scoreStats?.map(({ id, title, target }) => ({
-        id,
-        title,
-        target,
-      })),
-    ).toEqual([
-      {
-        id: "score-downed-officers-reported",
-        title: "Downed Officers Reported",
-        target: 1,
-      },
-      { id: "score-evidence-secured", title: "Evidence Secured", target: 17 },
-      { id: "score-no-officers-dead", title: "No Officers Dead", target: 1 },
-    ]);
     expect(getManualPersonnelCounters(mission)).toEqual([]);
   });
 
-  it("tracks The Spider's personnel totals and score stats", () => {
+  it("tracks The Spider's personnel totals", () => {
     const mission = missionById("the-spider");
 
     expect(
@@ -281,16 +242,6 @@ describe("mission data", () => {
     ).toEqual([
       { id: "bring-order-to-chaos", kind: "count", target: 9 },
       { id: "rescue-all-of-the-civilians", kind: "count", target: 5 },
-    ]);
-    expect(
-      mission.scoreStats?.map(({ id, title, target }) => ({
-        id,
-        title,
-        target,
-      })),
-    ).toEqual([
-      { id: "score-evidence-secured", title: "Evidence Secured", target: 17 },
-      { id: "score-no-officers-dead", title: "No Officers Dead", target: 1 },
     ]);
     expect(getManualPersonnelCounters(mission)).toEqual([]);
   });
@@ -315,9 +266,6 @@ describe("mission data", () => {
     expect(
       mission.objectives.map((objective) => objective.id),
     ).not.toContain("report-prohibited-images-of-minors");
-    expect(mission.scoreStats?.map((stat) => stat.title)).toEqual([
-      "No Officers Dead",
-    ]);
   });
 
   it("migrates saved personnel counts into the corresponding objectives", () => {

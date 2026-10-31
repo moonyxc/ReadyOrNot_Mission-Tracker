@@ -10,19 +10,12 @@ export type Objective = {
   type: ObjectiveType;
 };
 
-export type MissionScoreStat = {
-  id: string;
-  title: string;
-  target: number;
-};
-
 export type Mission = {
   id: string;
   number: number;
   name: string;
   group: string;
   objectives: Objective[];
-  scoreStats?: MissionScoreStat[];
 };
 
 export const personnelCounterCategories = ["suspects", "civilians"] as const;
@@ -53,13 +46,8 @@ export function getPersonnelCountObjective(
 export function getManualPersonnelCounters(
   mission: Mission,
 ): PersonnelCounter[] {
-  const scoreStatIds = new Set(
-    (mission.scoreStats ?? []).map((stat) => stat.id),
-  );
   return personnelCounterCategories.filter(
-    (counter) =>
-      !getPersonnelCountObjective(mission, counter) &&
-      !scoreStatIds.has(personnelCounterKeys[counter]),
+    (counter) => !getPersonnelCountObjective(mission, counter),
   );
 }
 
@@ -109,13 +97,6 @@ export const missions: Mission[] = [
         kind: "check",
         target: 1,
         type: "soft",
-      },
-    ],
-    scoreStats: [
-      {
-        id: "score-no-officers-dead",
-        title: "No Officers Dead",
-        target: 1,
       },
     ],
   },
@@ -172,13 +153,6 @@ export const missions: Mission[] = [
         kind: "check",
         target: 1,
         type: "soft",
-      },
-    ],
-    scoreStats: [
-      {
-        id: "score-no-officers-dead",
-        title: "No Officers Dead",
-        target: 1,
       },
     ],
   },
@@ -245,23 +219,6 @@ export const missions: Mission[] = [
         type: "soft",
       },
     ],
-    scoreStats: [
-      {
-        id: "score-downed-officers-reported",
-        title: "Downed Officers Reported",
-        target: 1,
-      },
-      {
-        id: "score-evidence-secured",
-        title: "Evidence Secured",
-        target: 17,
-      },
-      {
-        id: "score-no-officers-dead",
-        title: "No Officers Dead",
-        target: 1,
-      },
-    ],
   },
   {
     id: "the-spider",
@@ -292,18 +249,6 @@ export const missions: Mission[] = [
         kind: "check",
         target: 1,
         type: "main",
-      },
-    ],
-    scoreStats: [
-      {
-        id: "score-evidence-secured",
-        title: "Evidence Secured",
-        target: 17,
-      },
-      {
-        id: "score-no-officers-dead",
-        title: "No Officers Dead",
-        target: 1,
       },
     ],
   },

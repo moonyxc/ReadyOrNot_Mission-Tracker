@@ -13,7 +13,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function emptyCounts(mission: Mission): Counts {
-  const scoreStats = mission.scoreStats ?? [];
   const manualPersonnelCounterIds = getManualPersonnelCounters(mission).map(
     (counter) => personnelCounterKeys[counter],
   );
@@ -21,7 +20,6 @@ export function emptyCounts(mission: Mission): Counts {
   return Object.fromEntries([
     ...mission.objectives.map((objective) => [objective.id, 0]),
     ...manualPersonnelCounterIds.map((id) => [id, 0]),
-    ...scoreStats.map((stat) => [stat.id, 0]),
   ]);
 }
 
@@ -45,9 +43,6 @@ export function parseStoredCounts(
   }
 
   let invalid = false;
-  const scoreStats = mission.scoreStats ?? [];
-  const scoreStatIds = new Set(scoreStats.map((stat) => stat.id));
-
   for (const objective of mission.objectives) {
     const value = parsed[objective.id];
     if (value === undefined) continue;
@@ -65,24 +60,8 @@ export function parseStoredCounts(
     counts[objective.id] = normalized;
   }
 
-  for (const stat of scoreStats) {
-    const value = parsed[stat.id];
-    if (value === undefined) continue;
-
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-      invalid = true;
-      continue;
-    }
-
-    const normalized = Math.max(0, Math.min(stat.target, Math.floor(value)));
-    if (normalized !== value) invalid = true;
-    counts[stat.id] = normalized;
-  }
-
   for (const counter of personnelCounterCategories) {
     const id = personnelCounterKeys[counter];
-    if (scoreStatIds.has(id)) continue;
-
     const value = parsed[id];
     if (value === undefined) continue;
 
