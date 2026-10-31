@@ -267,6 +267,34 @@ describe("mission data", () => {
     expect(getManualPersonnelCounters(mission)).toEqual([]);
   });
 
+  it("tracks The Spider's personnel totals and score stats", () => {
+    const mission = missionById("the-spider");
+
+    expect(
+      mission.objectives
+        .filter(
+          (objective) =>
+            objective.id === "bring-order-to-chaos" ||
+            objective.id === "rescue-all-of-the-civilians",
+        )
+        .map(({ id, kind, target }) => ({ id, kind, target })),
+    ).toEqual([
+      { id: "bring-order-to-chaos", kind: "count", target: 9 },
+      { id: "rescue-all-of-the-civilians", kind: "count", target: 5 },
+    ]);
+    expect(
+      mission.scoreStats?.map(({ id, title, target }) => ({
+        id,
+        title,
+        target,
+      })),
+    ).toEqual([
+      { id: "score-evidence-secured", title: "Evidence Secured", target: 17 },
+      { id: "score-no-officers-dead", title: "No Officers Dead", target: 1 },
+    ]);
+    expect(getManualPersonnelCounters(mission)).toEqual([]);
+  });
+
   it("uses the supplied totals and report objective for 23 Megabytes a Second", () => {
     const mission = missionById("23-megabytes-a-second");
     const personnelTargets = mission.objectives
